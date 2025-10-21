@@ -84,6 +84,7 @@
     </label>
     <button class="btn" id="rotateBtn" title="Przejście (rotacja)">Przejście</button>
     <button class="btn" id="resetBtn" title="Reset pozycji">Reset</button>
+    <span id="rotationNumber"></span>
     <div class="spacer"></div>
   </header>
 
@@ -702,6 +703,7 @@
 
     // Inicjalizacja drużyn
     function initTeams() {
+      document.getElementById('rotationNumber').textContent = `Rotacja: ${currentRotation + 1}`;
       teamBlueLayer.innerHTML = '';
       teamRedLayer.innerHTML  = '';
       pleyersNumberB = [1,2,3,4,5,6];
@@ -724,6 +726,7 @@
     function rotateBlue() {
       const players = Array.from(teamBlueLayer.querySelectorAll('.player'));
       currentRotation = (currentRotation + 1) % 6;
+      document.getElementById('rotationNumber').textContent = `Rotacja: ${currentRotation + 1}`;
       for (const g of players) {
         const playerData = playerPositions[`player${g.dataset.number}`];
         const action = "pass";
@@ -737,6 +740,7 @@
     function resetBlue() {
       const players = Array.from(teamBlueLayer.querySelectorAll('.player'));
       currentRotation = 0;
+      document.getElementById('rotationNumber').textContent = `Rotacja: ${currentRotation + 1}`;
       for (const g of players) {
         const playerData = playerPositions[`player${g.dataset.number}`];
         const action = "pass";
