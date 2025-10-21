@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Boisko do siatkówki – mobilny podgląd</title>
+  <style>
+    :root {
+      --toolbar-h: 68px;
+      --bg: #0f172a;          /* tło aplikacji */
+      --court: #f5efe6;       /* kolor parkietu */
+      --line: #1f2937;        /* linie boiska */
+      --net: #111827;         /* siatka */
+      --zone: #94a3b8;        /* linie stref */
+      --blue: #2563eb;        /* nasi */
+      --red: #ef4444;         /* przeciwnik */
+      --accent: #10b981;      /* akcent UI */
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; background: var(--bg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color: #fff; }
+
+    header.toolbar {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--toolbar-h);
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+      background: rgba(3,7,18,0.85); backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(148,163,184,0.2);
+      z-index: 10;
+    }
+    header .title { font-weight: 700; font-size: 16px; letter-spacing: .3px; white-space: nowrap; }
+    .spacer { flex: 1 1 auto; }
+
+    .btn, .toggle {
+      font-size: 16px; border: 0; border-radius: 14px; padding: 12px 14px; line-height: 1; cursor: pointer;
+      color: #0b0f19; background: #fff; font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,.25);
+      touch-action: manipulation;
+    }
+    .btn:active { transform: translateY(1px); }
+
+    .toggle { display: inline-flex; align-items: center; gap: 10px; background: #e2e8f0; }
+    .toggle input { appearance: none; width: 24px; height: 24px; border-radius: 6px; border: 2px solid #475569; display: grid; place-items: center; background: #fff; }
+    .toggle input:checked { background: var(--accent); border-color: var(--accent); }
+
+    .court-wrap {
+      position: fixed; inset: var(--toolbar-h) 0 0 0; display: grid; place-items: center;
+      padding: 10px; /* oddech od krawędzi ekranu */
+    }
+    /* Utrzymujemy maksymalną wysokość ekranu i wygodne proporcje 1:2 */
+    svg#court { height: 100%; width: auto; max-width: 100%; border-radius: 18px; background: var(--court); box-shadow: 0 10px 40px rgba(0,0,0,.4); }
+
+    /* Linie boiska */
+    .outer { stroke: var(--line); stroke-width: 2; fill: var(--court); }
+    .net   { stroke: var(--net);  stroke-width: 2.5; stroke-dasharray: 2 2; }
+    .attack{ stroke: var(--line); stroke-width: 1.5; opacity: .9; }
+
+    /* Strefy */
+    .zones { display: none; }
+    .show-zones .zones { display: block; }
+    .zone-line { stroke: var(--zone); stroke-width: 1.4; stroke-dasharray: 8 6; opacity: .9; }
+    .zone-label { fill: #334155; font-weight: 800; text-anchor: middle; dominant-baseline: central; opacity: .85; user-select: none; }
+
+    /* Zawodnicy */
+    .player { transition: transform 420ms cubic-bezier(.2,.8,.2,1); will-change: transform; cursor: grab; }
+    .player circle { stroke: #0b0f19; stroke-width: 1.2; }
+    .player text { fill: #fff; font-weight: 900; font-size: 6px; text-anchor: middle; dominant-baseline: central; pointer-events: none; user-select: none; }
+    .team-blue circle { fill: var(--blue); }
+    .team-red  circle { fill: var(--red); opacity: .9; }
+
+    /* Podpowiedzi */
+    .hint { position: fixed; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 13px; color: #cbd5e1; opacity: .9; }
+
+    @media (min-width: 768px) {
+      header.toolbar { gap: 14px; }
+      .btn, .toggle { font-size: 15px; padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div class="title">🏐 Boisko do siatkówki</div>
+    <label class="toggle" title="Pokaż / ukryj strefy (1–6)">
+      <input type="checkbox" id="zonesToggle" checked>
+      <span>Strefy</span>
+    </label>
+    <button class="btn" id="rotateBtn" title="Przejście (rotacja)">Przejście</button>
+    <button class="btn" id="resetBtn" title="Reset pozycji">Reset</button>
+    <div class="spacer"></div>
+  </header>
+
+  <div class="court-wrap">
+    <!-- Proporcje 1:2 (szerokość:wysokość) – lepiej widoczne na telefonie (pion) -->
+    <svg id="court" viewBox="0 0 90 180" preserveAspectRatio="xMidYMid meet" class="show-zones" role="img" aria-label="Boisko do siatkówki">
+      <!-- Tło i ramka -->
+      <rect class="outer" x="1" y="1" width="88" height="178" rx="2" ry="2"/>
+
+      <!-- Siatka w połowie -->
+      <line class="net" x1="0" y1="90" x2="90" y2="90" />
+
+      <!-- Linie ataku 3 m od siatki (na obu połowach) -->
+      <line class="attack" x1="0" y1="60" x2="90" y2="60" />
+      <line class="attack" x1="0" y1="120" x2="90" y2="120" />
+
+      <!-- STREFY (toggle) -->
+      <g class="zones">
+        <!-- pionowe podziały na trzy pasy (lewa/środek/prawa) -->
+        <line class="zone-line" x1="30" y1="0" x2="30" y2="180" />
+        <line class="zone-line" x1="60" y1="0" x2="60" y2="180" />
+        <!-- numery stref zgodnie z klasycznym układem: dół = nasza drużyna -->
+        <!-- dół (tyły): 5 (lewa), 6 (środek), 1 (prawa) -->
+        <text class="zone-label" x="15" y="150">5</text>
+        <text class="zone-label" x="45" y="150">6</text>
+        <text class="zone-label" x="75" y="150">1</text>
+        <!-- dół (przód): 4 (lewa), 3 (środek), 2 (prawa) -->
+        <text class="zone-label" x="15" y="105">4</text>
+        <text class="zone-label" x="45" y="105">3</text>
+        <text class="zone-label" x="75" y="105">2</text>
+
+        <!-- góra (z perspektywy przeciwnika):  przeciwny układ 1–6 -->
+        <text class="zone-label" x="15" y="30">1</text>
+        <text class="zone-label" x="45" y="30">6</text>
+        <text class="zone-label" x="75" y="30">5</text>
+        <text class="zone-label" x="15" y="75">2</text>
+        <text class="zone-label" x="45" y="75">3</text>
+        <text class="zone-label" x="75" y="75">4</text>
+      </g>
+
+      <!-- DRUŻYNY -->
+      <g id="team-blue" class="team-blue" aria-label="Nasi zawodnicy"></g>
+      <g id="team-red" class="team-red" aria-label="Przeciwnicy"></g>
+    </svg>
+  </div>
+
+  <div class="hint">Przeciągaj zawodników palcem. „Przejście” wykonuje rotację naszej szóstki (1→6→5→4→3→2→1).</div>
+
+  <script>
+    // —— SKALA I UKŁAD ——
+    // viewBox 90x180 odpowiada 9m x 18m (1 jednostka = 0.1 m)
+
+    // Środki stref dla dolnej połowy (nasi) – układ klasyczny
+    const ZONE_CENTERS_BOTTOM = {
+      1: { x: 75, y: 160 }, // prawa tylna
+      6: { x: 45, y: 160 }, // środek tylna
+      5: { x: 15, y: 160 }, // lewa tylna
+      2: { x: 75, y: 110 }, // prawa przednia
+      3: { x: 45, y: 110 }, // środek przednia
+      4: { x: 15, y: 110 }, // lewa przednia
+    };
+
+    // Odbicie dla górnej połowy (przeciwnik)
+    const ZONE_CENTERS_TOP = {
+      1: { x: 15, y: 20 },  // z ich perspektywy prawa tylna -> po lewej u nas
+      6: { x: 45, y: 20 },
+      5: { x: 75, y: 20 },
+      2: { x: 15, y: 70 },
+      3: { x: 45, y: 70 },
+      4: { x: 75, y: 70 },
+    };
+
+    // Mapa rotacji (przejście): 1→6→5→4→3→2→1
+    const NEXT_ZONE = { 1: 6, 6: 5, 5: 4, 4: 3, 3: 2, 2: 1 };
+
+    const court = document.getElementById('court');
+    const teamBlueLayer = document.getElementById('team-blue');
+    const teamRedLayer  = document.getElementById('team-red');
+
+    const RADIUS = 6; // w jednostkach viewBox
+
+    let currentRotation = 0;
+
+    const playerPositions = {
+        player1: {
+          rotations: [
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 45, y: 100 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 82, y: 100 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 45, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 20, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 8, y: 100 }
+            },
+          ],
+          color: 'blue',
+          role: 'rozgrywający',
+          code: 'R2'
+        },
+        player2: {
+          rotations: [
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 45, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 20, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 8, y: 100 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 45, y: 100 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 82, y: 100 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 150 }
+            },
+          ],
+          color: 'blue',
+          role: 'rozgrywający',
+          code: 'R2'
+        },
+        player3: {
+          rotations: [
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 45, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 20, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 8, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 80, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 82, y: 120 }
+            },
+          ],
+          color: 'blue',
+          role: 'przyjmujący',
+          code: 'P3'
+        },
+        player4: {
+          rotations: [
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 20, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 8, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 10, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 82, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 45, y: 150 }
+            },
+          ],
+          color: 'blue',
+          role: 'przyjmujący',
+          code: 'P4'
+        },
+        player5: {
+          rotations: [
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 8, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 80, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 82, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 45, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 20, y: 150 }
+            },
+          ],
+          color: 'blue',
+          role: 'przyjmujący',
+          code: 'P1'
+        },
+        player6: {
+          rotations: [
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 82, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 45, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 20, y: 150 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 8, y: 120 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 10, y: 120 }
+            },
+          ],
+          color: 'blue',
+          role: 'przyjmujący',
+          code: 'P2'
+        },
+        player7: {
+          rotations: [
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 135 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 135 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 135 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 135 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 135 }
+            },
+            {
+              defenceLeft: { x: 75, y: 160 },
+              defenceRight: { x: 75, y: 160 },
+              attackLeft:  { x: 75, y: 110},
+              attackRight:  { x: 75, y: 110},
+              attackMiddle:  { x: 75, y: 110},
+              attackPipe:  { x: 75, y: 110},
+              attackSecondRight:  { x: 75, y: 110},
+              pass:   { x: 70, y: 135 }
+            },
+          ],
+          color: 'white',
+          role: 'libero',
+          code: 'L'
+        },
+    };
+
+    // Tworzy ikonę zawodnika (kółko + numer), możliwy drag
+    function createPlayer({ team, number, zone, draggable }) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const playerData = playerPositions[`player${number}`];
+      const _number = team === 'blue' ? playerData.code.toUpperCase() : number ; // przeciwnik ma odwrotny numer
+      g.classList.add('player');
+      g.dataset.team = team;
+      g.dataset.number = number;
+      g.dataset.zone = String(zone);
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('r', String(RADIUS));
+      circle.setAttribute('cx', '0');
+      circle.setAttribute('cy', '0');
+
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.textContent = String(_number);
+      label.setAttribute('x', '0');
+      label.setAttribute('y', '0');
+      label.setAttribute('dy', '0.5');
+
+      g.appendChild(circle);
+      g.appendChild(label);
+
+      const action = "pass";
+
+      const playerPos = playerData.rotations[currentRotation][action];
+      if (team === "blue") {
+        setPlayerPosition(g, playerPos.x, playerPos.y);
+      } else {
+        positionByZone(g);
+      }
+
+      if (draggable) enableDrag(g, { restrictBottomHalf: team === 'blue', restrictTopHalf: team === 'red' });
+
+      return g;
+    }
+
+    // Ustawienie pozycji wg strefy
+    function positionByZone(playerG) {
+      const zone = Number(playerG.dataset.zone);
+      const team = playerG.dataset.team;
+      const centers = team === 'blue' ? ZONE_CENTERS_BOTTOM : ZONE_CENTERS_TOP;
+      const { x, y } = centers[zone];
+      setPlayerPosition(playerG, x, y);
+    }
+
+    // function setPlayerPosition(playerG, x, y) {
+    //   const circle = playerG.querySelector('circle');
+    //   const text   = playerG.querySelector('text');
+    //   circle.setAttribute('cx', String(x));
+    //   circle.setAttribute('cy', String(y));
+    //   text.setAttribute('x', String(x));
+    //   text.setAttribute('y', String(y + 0.5)); // delikatna korekta optyczna
+    // }
+    function setPlayerPosition(playerG, x, y) {
+      playerG.setAttribute('transform', `translate(${x}, ${y})`);
+      playerG.dataset.x = String(x);
+      playerG.dataset.y = String(y);
+    }
+
+    // Inicjalizacja drużyn
+    function initTeams() {
+      teamBlueLayer.innerHTML = '';
+      teamRedLayer.innerHTML  = '';
+      pleyersNumberB = [1,2,3,4,5,6];
+      pleyersNumberR = [1,2,3,4,5,6];
+
+      // Nasi: numery = strefy startowe 1..6
+      for (let n of pleyersNumberB) {
+        const p = createPlayer({ team: 'blue', number: n, zone: n, draggable: true });
+        teamBlueLayer.appendChild(p);
+      }
+
+      // Przeciwnik: też 1..6, ale nie do przeciągania (możesz zmienić na true)
+      for (let n of pleyersNumberR) {
+        const p = createPlayer({ team: 'red', number: n, zone: n, draggable: false });
+        teamRedLayer.appendChild(p);
+      }
+    }
+
+    // Rotacja naszej drużyny (przejście)
+    function rotateBlue() {
+      const players = Array.from(teamBlueLayer.querySelectorAll('.player'));
+      currentRotation = (currentRotation + 1) % 6;
+      for (const g of players) {
+        const playerData = playerPositions[`player${g.dataset.number}`];
+        const action = "pass";
+        const playerPos = playerData.rotations[currentRotation][action];
+        setPlayerPosition(g, playerPos.x, playerPos.y);
+
+      }
+    }
+
+    // Reset pozycji 1..6 do stref 1..6
+    function resetBlue() {
+      const players = Array.from(teamBlueLayer.querySelectorAll('.player'));
+      currentRotation = 0;
+      for (const g of players) {
+        const playerData = playerPositions[`player${g.dataset.number}`];
+        const action = "pass";
+        const playerPos = playerData.rotations[currentRotation][action];
+        setPlayerPosition(g, playerPos.x, playerPos.y);
+      }
+    }
+
+    // —— DRAG & DROP dla SVG (wspiera dotyk) ——
+    function enableDrag(g, { restrictBottomHalf=false, restrictTopHalf=false } = {}) {
+      let dragging = false; let pointerId = null; let offset = { x: 0, y: 0 };
+      const circle = g.querySelector('circle');
+
+      function toSVGPoint(evt) {
+        const pt = court.createSVGPoint();
+        if (evt.touches && evt.touches[0]) {
+          pt.x = evt.touches[0].clientX; pt.y = evt.touches[0].clientY;
+        } else if (evt.changedTouches && evt.changedTouches[0]) {
+          pt.x = evt.changedTouches[0].clientX; pt.y = evt.changedTouches[0].clientY;
+        } else {
+          pt.x = evt.clientX; pt.y = evt.clientY;
+        }
+        const m = court.getScreenCTM().inverse();
+        return pt.matrixTransform(m);
+      }
+
+      function onDown(evt) {
+        evt.preventDefault();
+        dragging = true;
+        g.classList.add('dragging'); // wyłącz przejście
+        const p = toSVGPoint(evt);
+
+        const cx = Number(g.dataset.x || '0');
+        const cy = Number(g.dataset.y || '0');
+
+        offset.x = p.x - cx;
+        offset.y = p.y - cy;
+
+        pointerId = evt.pointerId || 1;
+        g.setPointerCapture?.(pointerId);
+      }
+
+      function onMove(evt) {
+        if (!dragging) return;
+        const p = toSVGPoint(evt);
+        let nx = p.x - offset.x;
+        let ny = p.y - offset.y;
+
+        const minX = 1 + RADIUS, maxX = 89 - RADIUS;
+        const minY = 1 + RADIUS, maxY = 179 - RADIUS;
+
+        nx = Math.max(minX, Math.min(maxX, nx));
+        ny = Math.max(minY, Math.min(maxY, ny));
+        if (restrictBottomHalf) ny = Math.max(90 + RADIUS, ny);
+        if (restrictTopHalf)    ny = Math.min(90 - RADIUS, ny);
+
+        setPlayerPosition(g, nx, ny);
+      }
+
+      function onUp() {
+        dragging = false;
+        g.classList.remove('dragging'); // przywróć animację
+        if (pointerId != null) {
+          try { g.releasePointerCapture?.(pointerId); } catch {}
+          pointerId = null;
+        }
+      }
+
+      // Obsługa pointer/touch jak było:
+      circle.addEventListener('pointerdown', onDown);
+      court.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+
+      circle.addEventListener('touchstart', onDown, { passive: false });
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('touchend', onUp, { passive: false });
+    }
+
+    // —— UI ——
+    document.getElementById('zonesToggle').addEventListener('change', (e) => {
+      court.classList.toggle('show-zones', e.target.checked);
+    });
+    document.getElementById('rotateBtn').addEventListener('click', rotateBlue);
+    document.getElementById('resetBtn').addEventListener('click', resetBlue);
+
+    // Start
+    initTeams();
+  </script>
+</body>
+</html>
