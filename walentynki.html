@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Walentynki 💘</title>
+  <style>
+    :root {
+      --bg1: #ffdde1;
+      --bg2: #ee9ca7;
+      --card: rgba(255,255,255,.78);
+      --shadow: 0 20px 50px rgba(0,0,0,.15);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #fff 0 10%, transparent 10% 100%),
+                  radial-gradient(circle at 80% 30%, #fff 0 9%, transparent 9% 100%),
+                  radial-gradient(circle at 30% 80%, #fff 0 8%, transparent 8% 100%),
+                  linear-gradient(135deg, var(--bg1), var(--bg2));
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .card {
+      width: min(720px, 92vw);
+      padding: clamp(18px, 4vw, 32px);
+      border-radius: 24px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(26px, 4vw, 40px);
+      line-height: 1.1;
+    }
+
+    .sub {
+      margin: 0 0 18px;
+      font-size: clamp(14px, 2vw, 18px);
+      opacity: .85;
+    }
+
+    .hearts {
+      font-size: clamp(20px, 3vw, 28px);
+      opacity: .9;
+      user-select: none;
+      margin-bottom: 12px;
+    }
+
+    /* Arena na przyciski */
+    .arena {
+      position: relative;
+      height: 220px;
+      border-radius: 18px;
+      overflow: hidden;
+      padding: 16px;
+    }
+
+    .btn {
+      border: 0;
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: transform .12s ease, filter .12s ease;
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+      user-select: none;
+      touch-action: manipulation;
+      position: absolute;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+
+    .btn:active { transform: scale(.98); }
+    .btn:hover { filter: brightness(1.03); }
+
+    .yes {
+      background: #22c55e;
+      color: white;
+      left: 25%;
+      bottom: 50%;
+    }
+
+    .no {
+      background: #ef4444;
+      color: white;
+      left: 50%;
+      bottom: 50%;
+    }
+
+    .hint {
+      margin-top: 12px;
+      font-size: 14px;
+      opacity: .75;
+    }
+
+    /* Modal */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 10;
+    }
+    .modal {
+      width: min(520px, 96vw);
+      background: rgba(255,255,255,.92);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateY(10px);
+      animation: pop .18s ease-out forwards;
+    }
+    @keyframes pop { to { transform: translateY(0); } }
+
+    .modal header {
+      padding: 18px 18px 10px;
+      font-weight: 700;
+      font-size: 20px;
+    }
+    .modal .content {
+      padding: 0 18px 18px;
+      display: grid;
+      gap: 12px;
+    }
+    .gif {
+      width: 100%;
+      border-radius: 16px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+    }
+    .closeRow {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 18px 18px;
+    }
+    .closeBtn {
+      border: 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      background: #111827;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    /* Małe serduszka w tle */
+    .float {
+      position: absolute;
+      inset: -50px;
+      pointer-events: none;
+      opacity: .25;
+      filter: blur(.2px);
+    }
+  </style>
+</head>
+<body>
+  <div class="float" aria-hidden="true"></div>
+
+  <main class="card">
+    <div class="hearts">💘 💞 💝 💘 💞</div>
+    <h1>Czy zostaniesz moją walentynką?</h1>
+    <p class="sub">Odpowiedz mądrze… przycisk 😅</p>
+
+    <section class="arena" id="arena" aria-label="Wybór odpowiedzi">
+      <button class="btn yes" id="yesBtn">Tak 😍</button>
+      <button class="btn no" id="noBtn">Nie 🙃</button>
+    </section>
+    <p class="hint">Proszę o podesłanie zrzutu ekranu po wybraniu odpowiedzi</p>
+  </main>
+
+  <!-- Modal -->
+  <div class="backdrop" id="backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <header id="modalTitle">JEEEJJJ! 🥳💖</header>
+      <div class="content">
+        <div>Teraz oficjalnie zostałaś: <b>moja walentynka</b> 💘</div>
+        <!-- GIF online (Giphy). Jeśli chcesz offline, podmień src na własny plik, np. "happy.gif" -->
+        <img class="gif"
+             src="https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif"
+             alt="Radosny gif" />
+      </div>
+      <div class="closeRow">
+        <button class="closeBtn" id="closeBtn">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const arena = document.getElementById('arena');
+    const noBtn = document.getElementById('noBtn');
+    const yesBtn = document.getElementById('yesBtn');
+
+    const backdrop = document.getElementById('backdrop');
+    const closeBtn = document.getElementById('closeBtn');
+
+    // Ustawiamy startową pozycję "Nie" w prawym dolnym rogu (już w CSS),
+    // ale JS zapewni, że przycisk jest pozycjonowany w granicach areny.
+    function moveNoButton() {
+      const a = arena.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
+
+      // Bezpieczne marginesy, żeby nie przyklejało do krawędzi
+      const padding = 12;
+
+      const maxX = Math.max(padding, a.width - b.width - padding);
+      const maxY = Math.max(padding, a.height - b.height - padding);
+
+      // Losuj pozycję w obrębie areny
+      const x = Math.floor(padding + Math.random() * (maxX - padding));
+      const y = Math.floor(padding + Math.random() * (maxY - padding));
+
+      noBtn.style.left = x + 'px';
+      noBtn.style.top  = y + 'px';
+      noBtn.style.right = 'auto';
+      noBtn.style.bottom = 'auto';
+    }
+
+    // Ucieczka na hover + klik (też na dotyk)
+    noBtn.addEventListener('mouseenter', moveNoButton);
+    noBtn.addEventListener('click', (e) => { e.preventDefault(); moveNoButton(); });
+    noBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveNoButton(); }, { passive: false });
+
+    // Klik w "Tak" -> modal z gifem
+    function openModal() {
+      backdrop.style.display = 'flex';
+    }
+    function closeModal() {
+      backdrop.style.display = 'none';
+    }
+
+    yesBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+
+    // Klik w tło zamyka
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) closeModal();
+    });
+
+    // ESC zamyka
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // Drobna "dekoracja" serduszek w tle (bez bibliotek)
+    const floatLayer = document.querySelector('.float');
+    const hearts = ['💗','💖','💘','💞','💓','💝'];
+    for (let i = 0; i < 24; i++) {
+      const s = document.createElement('span');
+      s.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+      s.style.position = 'absolute';
+      s.style.left = Math.random() * 100 + '%';
+      s.style.top = Math.random() * 100 + '%';
+      s.style.fontSize = (14 + Math.random() * 28) + 'px';
+      s.style.transform = `rotate(${(Math.random()*40-20)}deg)`;
+      floatLayer.appendChild(s);
+    }
+  </script>
+</body>
+</html>
