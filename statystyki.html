@@ -1,0 +1,1670 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Statystyki siatkarskie – jedna drużyna</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#111a33;
+      --panel2:#0f1730;
+      --text:#e9eefc;
+      --muted:#a8b3d6;
+      --line:#243056;
+      --accent:#7aa2ff;
+      --good:#20c997;
+      --bad:#ff6b6b;
+      --warn:#ffd43b;
+      --soft:#9fb3ff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,var(--bg),#070a14);
+      color:var(--text);
+    }
+    header{
+      position:sticky; top:0; z-index:20;
+      padding:16px 16px 10px;
+      border-bottom:1px solid var(--line);
+      background:rgba(11,16,32,.92);
+      backdrop-filter:blur(8px);
+    }
+    header h1{margin:0; font-size:19px}
+    header .sub{margin-top:4px; color:var(--muted); font-size:12px; line-height:1.35}
+    main{max-width:1240px; margin:0 auto; padding:16px}
+    .card{
+      background:rgba(17,26,51,.86);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      box-shadow:0 12px 30px rgba(0,0,0,.22);
+    }
+    .stack{display:flex; flex-direction:column; gap:12px}
+    .sectionTitle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .sectionTitle h2{margin:0; font-size:15px}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .row > *{flex:0 0 auto}
+    label{font-size:12px; color:var(--muted)}
+    input[type="text"], input[type="number"]{
+      background:var(--panel2);
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 10px;
+      outline:none;
+    }
+    input[type="text"]{width:240px}
+    input[type="number"]{width:92px}
+    .btn{
+      appearance:none;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,#15224a,#0f1730);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:700;
+      letter-spacing:.15px;
+      transition:transform .05s ease,border-color .2s ease,background .2s ease;
+      user-select:none;
+    }
+    .btn:hover{border-color:#38509a}
+    .btn:active{transform:translateY(1px)}
+    .btn.small{padding:7px 9px; font-size:12px; border-radius:10px}
+    .btn.good{border-color:rgba(32,201,151,.45)}
+    .btn.bad{border-color:rgba(255,107,107,.45)}
+    .btn.warn{border-color:rgba(255,212,59,.45)}
+    .btn.soft{border-color:rgba(122,162,255,.45)}
+    .btn.active{
+      border-color:var(--accent);
+      box-shadow:0 0 0 2px rgba(122,162,255,.22) inset;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(15,23,48,.60);
+      font-size:12px;
+      color:var(--muted);
+    }
+    .controlsGrid{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:12px;
+      align-items:end;
+    }
+    @media (max-width: 1000px){
+      .controlsGrid{grid-template-columns:1fr}
+    }
+    .rosterList{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      max-height:70vh;
+      overflow:auto;
+      padding-right:4px;
+    }
+    .playerLine{
+      display:grid;
+      grid-template-columns:290px 1fr;
+      gap:10px;
+      padding:10px;
+      border:1px solid rgba(36,48,86,.75);
+      border-radius:14px;
+      background:rgba(15,23,48,.42);
+    }
+    @media (max-width: 900px){
+      .playerLine{grid-template-columns:1fr}
+    }
+    .playerMeta{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .metaTop{
+      display:grid;
+      grid-template-columns:62px 1fr auto;
+      gap:8px;
+      align-items:center;
+    }
+    .metaTop .numInput{width:62px}
+    .metaTop .nameInput{width:100%}
+    .playRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .miniStat{
+      font-size:11px;
+      color:var(--muted);
+      padding:4px 8px;
+      border:1px solid rgba(36,48,86,.75);
+      border-radius:999px;
+      background:rgba(15,23,48,.55);
+    }
+    .actionWrap{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      align-content:flex-start;
+    }
+    .actionBtn{
+      min-width:44px;
+      padding:8px 9px;
+      border-radius:10px;
+      font-size:12px;
+      font-weight:800;
+    }
+    .summaryCard{margin-top:0}
+    .summaryToolbar{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .summaryBoxes{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(160px,1fr));
+      gap:8px;
+    }
+    @media (max-width: 1100px){
+      .summaryBoxes{grid-template-columns:repeat(3,minmax(150px,1fr))}
+    }
+    @media (max-width: 720px){
+      .summaryBoxes{grid-template-columns:repeat(2,minmax(140px,1fr))}
+    }
+    @media (max-width: 520px){
+      .summaryBoxes{grid-template-columns:1fr}
+    }
+    .summaryBox{
+      border:1px solid rgba(36,48,86,.75);
+      border-radius:14px;
+      padding:10px 12px;
+      background:rgba(15,23,48,.48);
+    }
+    .summaryBox .label{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+    .summaryBox .value{
+      font-size:16px;
+      font-weight:800;
+      line-height:1.25;
+    }
+    .lastAction{
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    details{
+      margin-top:10px;
+      border:1px solid rgba(36,48,86,.75);
+      border-radius:14px;
+      padding:10px 12px;
+      background:rgba(15,23,48,.38);
+    }
+    details summary{
+      cursor:pointer;
+      font-weight:700;
+    }
+    details p, details li{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+    .tableWrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(15,23,48,.40);
+    }
+    table{
+      width:100%;
+      min-width:1140px;
+      border-collapse:separate;
+      border-spacing:0;
+    }
+    thead th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:rgba(17,26,51,.95);
+      border-bottom:1px solid var(--line);
+    }
+    th, td{
+      padding:8px 8px;
+      border-bottom:1px solid rgba(36,48,86,.65);
+      font-size:12px;
+      text-align:center;
+      white-space:nowrap;
+    }
+    tbody tr:hover{background:rgba(122,162,255,.06)}
+    td.left, th.left{text-align:left}
+    th.stickyLeft, td.stickyLeft{
+      position:sticky; left:0; z-index:3;
+      background:rgba(17,26,51,.95);
+      border-right:1px solid rgba(36,48,86,.65);
+    }
+    td.stickyLeft{background:rgba(17,26,51,.72)}
+    th.stickyLeft2, td.stickyLeft2{
+      position:sticky; left:80px; z-index:3;
+      background:rgba(17,26,51,.95);
+      border-right:1px solid rgba(36,48,86,.65);
+    }
+    td.stickyLeft2{background:rgba(17,26,51,.72)}
+    .cellEdit{
+      display:inline-block;
+      min-width:36px;
+      padding:5px 6px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+    .cellEdit:hover{background:rgba(122,162,255,.10)}
+    .footerNote{
+      margin-top:10px;
+      font-size:11px;
+      color:var(--muted);
+      line-height:1.4;
+    }
+    .videoSection{
+      padding:0;
+      overflow:hidden;
+    }
+    .videoHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .videoHeader h2{margin:0; font-size:15px}
+    .videoHeader::-webkit-details-marker{display:none}
+    .videoSection[open] .videoToggleIcon{transform:rotate(180deg)}
+    .videoToggleIcon{
+      transition:transform .2s ease;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .videoBody{
+      padding:0 12px 12px;
+      border-top:1px solid rgba(36,48,86,.75);
+    }
+    .videoGrid{
+      display:grid;
+      grid-template-columns:minmax(280px, 420px) 1fr;
+      gap:12px;
+      align-items:start;
+      margin-top:12px;
+    }
+    @media (max-width: 980px){
+      .videoGrid{grid-template-columns:1fr}
+    }
+    .videoPanel{
+      border:1px solid rgba(36,48,86,.75);
+      border-radius:14px;
+      padding:12px;
+      background:rgba(15,23,48,.42);
+    }
+    .videoPanel .hint{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+      margin-top:8px;
+    }
+    .videoPlayer{
+      position:relative;
+      width:100%;
+      aspect-ratio:16/9;
+      border:1px solid rgba(36,48,86,.75);
+      border-radius:14px;
+      overflow:hidden;
+      background:rgba(15,23,48,.55);
+    }
+    .videoPlayer iframe{
+      width:100%;
+      height:100%;
+      border:0;
+    }
+    .videoPlaceholder{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:24px;
+      min-height:220px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+    .videoStatus{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.4;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Statystyki siatkarskie – jedna drużyna</h1>
+    <div class="sub">
+      U góry ustawiasz mecz, nazwę swojej drużyny i przeciwnika. Niżej masz jedną listę zawodników z szybkimi przyciskami,
+      a na dole jedną tabelę statystyk dla aktualnego seta.
+    </div>
+  </header>
+
+  <main class="stack">
+    <section class="card">
+      <div class="sectionTitle">
+        <h2>Ustawienia meczu</h2>
+        <div class="row">
+          <span class="pill">Dane zapisują się lokalnie w przeglądarce</span>
+        </div>
+      </div>
+
+      <div class="controlsGrid">
+        <div class="row" style="gap:12px">
+          <div>
+            <label>Mecz (opis, opcjonalnie)</label><br>
+            <input id="matchName" type="text" placeholder="np. 1 liga juniorów – kolejka 7" style="width:340px" />
+          </div>
+          <div>
+            <label>Twoja drużyna</label><br>
+            <input id="teamName" type="text" placeholder="Moja drużyna" />
+          </div>
+          <div>
+            <label>Przeciwnik</label><br>
+            <input id="opponentName" type="text" placeholder="Przeciwnik" />
+          </div>
+        </div>
+
+        <div class="row" style="justify-content:flex-end">
+          <div>
+            <label>Aktualny set</label><br>
+            <div id="setButtons" class="row" style="gap:6px"></div>
+          </div>
+          <div>
+            <label>Wynik aktualnego seta</label><br>
+            <div class="row" style="gap:6px">
+              <div>
+                <label id="scoreTeamLabel">Moja drużyna</label><br>
+                <input id="scoreTeam" type="number" min="0" step="1" />
+              </div>
+              <div style="padding-top:20px; color:var(--muted)">:</div>
+              <div>
+                <label id="scoreOppLabel">Przeciwnik</label><br>
+                <input id="scoreOpp" type="number" min="0" step="1" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <details class="card videoSection" id="videoSection">
+      <summary class="videoHeader">
+        <h2>Film z meczu / YouTube</h2>
+        <div class="row">
+          <span class="pill">Sekcję można zwinąć</span>
+          <span class="videoToggleIcon">▾</span>
+        </div>
+      </summary>
+      <div class="videoBody">
+        <div class="videoGrid">
+          <div class="videoPanel">
+            <div>
+              <label>Link do filmu YouTube</label><br>
+              <input id="youtubeUrl" type="text" placeholder="Wklej link do YouTube" style="width:100%" />
+            </div>
+            <div class="row" style="margin-top:10px">
+              <button class="btn small soft" id="btnLoadYoutube">Wczytaj film</button>
+              <button class="btn small warn" id="btnClearYoutube">Usuń film</button>
+            </div>
+            <div id="youtubeStatus" class="videoStatus">Brak wczytanego filmu.</div>
+            <div class="hint">
+              Obsługiwane są standardowe linki YouTube, skrócone youtu.be oraz adresy embed.
+              Po wczytaniu film zapisuje się lokalnie w przeglądarce razem z meczem.
+            </div>
+          </div>
+
+          <div>
+            <div id="youtubePlayer" class="videoPlayer">
+              <div class="videoPlaceholder">
+                Tutaj pojawi się osadzony film z meczu. Wklej link z YouTube i kliknij „Wczytaj film”.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <section class="card">
+      <div class="sectionTitle">
+        <h2 id="rosterTitle">Moja drużyna – szybkie wpisywanie</h2>
+        <button class="btn small" id="btnAddPlayer">Dodaj zawodnika</button>
+      </div>
+      <div id="roster" class="rosterList"></div>
+    </section>
+
+    <section class="card summaryCard">
+      <div class="sectionTitle">
+        <h2>Cofanie i wyniki</h2>
+        <span class="pill" id="modePill">Tryb: +1</span>
+      </div>
+
+      <div class="summaryToolbar">
+        <button class="btn warn" id="btnUndo">Cofnij ostatnią akcję</button>
+        <button class="btn soft" id="btnToggleMode">Włącz tryb korekty (-1)</button>
+        <button class="btn small" id="btnExportCSV">Eksportuj CSV</button>
+        <button class="btn small" id="btnExportJSON">Backup JSON</button>
+        <button class="btn small warn" id="btnNewMatch">Nowy mecz</button>
+      </div>
+
+      <div id="summaryBoxes" class="summaryBoxes"></div>
+      <div id="lastActionText" class="lastAction">Ostatnia akcja: —</div>
+
+      <details>
+        <summary>Legenda przycisków</summary>
+        <p>
+          <b>A</b> atak w grze, <b>K</b> punkt w ataku, <b>AE</b> błąd ataku, <b>AB</b> atak zablokowany,
+          <b>S</b> zagrywka w grze, <b>SA</b> as, <b>SE</b> błąd zagrywki,
+          <b>R</b> przyjęcie bez oceny, <b>RP</b> perfekcyjne, <b>R+</b> pozytywne, <b>R0</b> neutralne, <b>RE</b> błąd przyjęcia,
+          <b>B</b> blok punktowy, <b>D</b> obrona, <b>AS</b> asysta, <b>SET</b> błąd rozegrania, <b>COV</b> asekuracja.
+        </p>
+        <p>
+          Kliknięcia jakościowe liczą pakiety automatycznie:
+          <b>K = A+K</b>, <b>AE = A+AE</b>, <b>AB = A+AB</b>, <b>SA = S+SA</b>, <b>SE = S+SE</b>,
+          <b>RP/R+/R0/RE = R + odpowiednia ocena</b>.
+        </p>
+      </details>
+    </section>
+
+    <section class="card">
+      <div class="sectionTitle">
+        <h2 id="tableTitle">Moja drużyna – tabela statystyk</h2>
+      </div>
+      <div id="tableWrap" class="tableWrap"></div>
+    </section>
+
+    <div class="footerNote">
+      Wskazówka: eksport CSV używa separatora średnik (;), więc dobrze otwiera się w polskim Excelu.
+      Dwuklik na komórce statystyki w dolnej tabeli pozwala wpisać wartość ręcznie.
+    </div>
+  </main>
+
+  <script>
+    const MAX_SETS = 5;
+    const STORAGE_KEY = "vbStatsSingleTeam_v1";
+
+    const STAT_KEYS = [
+      "A","K","AE","AB",
+      "S","SA","SE",
+      "R","RP","RPos","RNeu","RE",
+      "B","D","AS","SETE","COV"
+    ];
+
+    const DEFAULT_WEIGHTS = {
+      K: 1.0,
+      SA: 1.0,
+      B: 1.0,
+      AE: -1.0,
+      AB: -1.0,
+      SE: -1.0,
+      RE: -1.0,
+      SETE: -1.0,
+      RP: 0.2,
+      RPos: 0.1,
+      RNeu: 0.0,
+      D: 0.05,
+      AS: 0.05,
+      COV: 0.05
+    };
+
+    const ACTION_BUTTONS = [
+      {key:"A", text:"A", cls:"soft", title:"Atak w grze (+A)"},
+      {key:"K", text:"K", cls:"good", title:"Punkt w ataku (A+K)"},
+      {key:"AE", text:"AE", cls:"bad", title:"Błąd ataku (A+AE)"},
+      {key:"AB", text:"AB", cls:"bad", title:"Atak zablokowany (A+AB)"},
+      {key:"S", text:"S", cls:"soft", title:"Zagrywka w grze (+S)"},
+      {key:"SA", text:"SA", cls:"good", title:"As serwisowy (S+SA)"},
+      {key:"SE", text:"SE", cls:"bad", title:"Błąd zagrywki (S+SE)"},
+      {key:"R", text:"R", cls:"soft", title:"Przyjęcie bez oceny (+R)"},
+      {key:"RP", text:"RP", cls:"good", title:"Przyjęcie perfekcyjne (R+RP)"},
+      {key:"RPos", text:"R+", cls:"good", title:"Przyjęcie pozytywne (R+R+)"},
+      {key:"RNeu", text:"R0", cls:"warn", title:"Przyjęcie neutralne (R+R0)"},
+      {key:"RE", text:"RE", cls:"bad", title:"Błąd przyjęcia (R+RE)"},
+      {key:"B", text:"B", cls:"good", title:"Blok punktowy (+B)"},
+      {key:"D", text:"D", cls:"soft", title:"Obrona (+D)"},
+      {key:"AS", text:"AS", cls:"soft", title:"Asysta (+AS)"},
+      {key:"SETE", text:"SET", cls:"bad", title:"Błąd rozegrania (+SET)"},
+      {key:"COV", text:"COV", cls:"soft", title:"Asekuracja (+COV)"}
+    ];
+
+    function uid(){
+      if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return "p_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
+    }
+
+    function cloneStats(){
+      const out = {};
+      for(const k of STAT_KEYS) out[k] = 0;
+      return out;
+    }
+
+    function sanitizeScore(value){
+      if(value === "" || value === null || value === undefined) return "";
+      const n = Number(value);
+      if(!Number.isFinite(n)) return "";
+      return String(Math.max(0, Math.round(n)));
+    }
+
+    function createPlayer(number="", name=""){
+      return {
+        id: uid(),
+        number,
+        name,
+        statsBySet: Array.from({length: MAX_SETS}, ()=>cloneStats()),
+        playedBySet: Array.from({length: MAX_SETS}, ()=>false)
+      };
+    }
+
+    function createNewMatch(){
+      return {
+        version: 4,
+        createdAt: Date.now(),
+        matchName: "",
+        teamName: "Moja drużyna",
+        opponentName: "Przeciwnik",
+        currentSet: 1,
+        players: Array.from({length: 12}, (_,i)=>createPlayer(String(i+1), "")),
+        setScores: Array.from({length: MAX_SETS}, ()=>({team:"", opp:""})),
+        ui: {
+          mode: 1,
+          videoCollapsed: false
+        },
+        settings: {
+          delimiter: ";",
+          decimalComma: true,
+          youtubeUrl: "",
+          mvp: {
+            normalizePerSet: true,
+            weights: {...DEFAULT_WEIGHTS}
+          }
+        },
+        history: []
+      };
+    }
+
+    function hydrateStats(src){
+      const out = cloneStats();
+      for(const k of STAT_KEYS){
+        const v = src && src[k] !== undefined ? Number(src[k]) : 0;
+        out[k] = Number.isFinite(v) ? v : 0;
+      }
+      return out;
+    }
+
+    function hydratePlayer(src, fallbackNumber=""){
+      const player = src || {};
+      return {
+        id: player.id || uid(),
+        number: player.number ?? fallbackNumber,
+        name: player.name ?? "",
+        statsBySet: Array.from({length: MAX_SETS}, (_,i)=>hydrateStats(player.statsBySet && player.statsBySet[i])),
+        playedBySet: Array.from({length: MAX_SETS}, (_,i)=>!!(player.playedBySet && player.playedBySet[i]))
+      };
+    }
+
+    function hydrateState(raw){
+      const base = createNewMatch();
+      const prevWeights = raw && raw.settings && raw.settings.mvp && raw.settings.mvp.weights ? raw.settings.mvp.weights : {};
+      const playersSrc = Array.isArray(raw && raw.players) ? raw.players : [];
+      let players = playersSrc.map((p, i)=>hydratePlayer(p, String(i+1)));
+      if(!players.length) players = base.players;
+
+      const cs = Number(raw && raw.currentSet);
+      return {
+        ...base,
+        ...raw,
+        version: 4,
+        matchName: raw && typeof raw.matchName === "string" ? raw.matchName : "",
+        teamName: raw && typeof raw.teamName === "string" && raw.teamName.trim() ? raw.teamName : base.teamName,
+        opponentName: raw && typeof raw.opponentName === "string" && raw.opponentName.trim() ? raw.opponentName : base.opponentName,
+        currentSet: Number.isInteger(cs) && cs >= 1 && cs <= MAX_SETS ? cs : 1,
+        players,
+        setScores: Array.from({length: MAX_SETS}, (_,i)=>({
+          team: sanitizeScore(raw && raw.setScores && raw.setScores[i] && raw.setScores[i].team),
+          opp: sanitizeScore(raw && raw.setScores && raw.setScores[i] && raw.setScores[i].opp)
+        })),
+        ui: {
+          mode: raw && raw.ui && raw.ui.mode === -1 ? -1 : 1,
+          videoCollapsed: raw && raw.ui && typeof raw.ui.videoCollapsed === "boolean" ? raw.ui.videoCollapsed : base.ui.videoCollapsed
+        },
+        settings: {
+          delimiter: raw && raw.settings && raw.settings.delimiter ? raw.settings.delimiter : base.settings.delimiter,
+          decimalComma: raw && raw.settings && typeof raw.settings.decimalComma === "boolean" ? raw.settings.decimalComma : base.settings.decimalComma,
+          youtubeUrl: raw && raw.settings && typeof raw.settings.youtubeUrl === "string" ? raw.settings.youtubeUrl : base.settings.youtubeUrl,
+          mvp: {
+            normalizePerSet: raw && raw.settings && raw.settings.mvp && typeof raw.settings.mvp.normalizePerSet === "boolean"
+              ? raw.settings.mvp.normalizePerSet
+              : base.settings.mvp.normalizePerSet,
+            weights: {...DEFAULT_WEIGHTS, ...prevWeights}
+          }
+        },
+        history: Array.isArray(raw && raw.history) ? raw.history.slice(-200) : []
+      };
+    }
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return createNewMatch();
+        return hydrateState(JSON.parse(raw));
+      }catch(err){
+        console.warn("Błąd wczytywania stanu:", err);
+        return createNewMatch();
+      }
+    }
+
+    function saveState(){
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }catch(err){
+        console.warn("Błąd zapisu stanu:", err);
+      }
+    }
+
+    function sumStatsObj(a, b){
+      const out = {};
+      for(const k of STAT_KEYS){
+        out[k] = (a[k] || 0) + (b[k] || 0);
+      }
+      return out;
+    }
+
+    function anyStatNonZero(stats){
+      return STAT_KEYS.some(k => (stats[k] || 0) !== 0);
+    }
+
+    function statsTotalForPlayer(player, maxSet){
+      let total = cloneStats();
+      for(let i = 0; i < maxSet; i++){
+        total = sumStatsObj(total, player.statsBySet[i] || cloneStats());
+      }
+      return total;
+    }
+
+    function teamTotalForSet(setIndex){
+      let total = cloneStats();
+      for(const player of state.players){
+        total = sumStatsObj(total, player.statsBySet[setIndex] || cloneStats());
+      }
+      return total;
+    }
+
+    function teamTotalForMatch(maxSet){
+      let total = cloneStats();
+      for(const player of state.players){
+        total = sumStatsObj(total, statsTotalForPlayer(player, maxSet));
+      }
+      return total;
+    }
+
+    function points(stats){
+      return (stats.K || 0) + (stats.SA || 0) + (stats.B || 0);
+    }
+
+    function safeDiv(n, d){
+      return d > 0 ? n / d : 0;
+    }
+
+    function attackSuccess(stats){
+      return safeDiv(stats.K || 0, stats.A || 0);
+    }
+
+    function attackEfficiency(stats){
+      const A = stats.A || 0;
+      if(A <= 0) return 0;
+      return ((stats.K || 0) - (stats.AE || 0) - (stats.AB || 0)) / A;
+    }
+
+    function receptionIndex(stats){
+      const R = stats.R || 0;
+      if(R <= 0) return 0;
+      return ((stats.RP || 0) + 0.5 * (stats.RPos || 0) - (stats.RE || 0)) / R;
+    }
+
+    function setsPlayed(player, maxSet){
+      let count = 0;
+      for(let i = 0; i < maxSet; i++){
+        if((player.playedBySet && player.playedBySet[i]) || anyStatNonZero(player.statsBySet[i] || cloneStats())){
+          count++;
+        }
+      }
+      return count;
+    }
+
+    function mvpScoreFromStats(stats, weights){
+      let score = 0;
+      for(const [key, weight] of Object.entries(weights || {})){
+        score += (stats[key] || 0) * (weight || 0);
+      }
+      return score;
+    }
+
+    function maxSetUsed(){
+      let max = state.currentSet || 1;
+      for(let i = 0; i < MAX_SETS; i++){
+        const sc = state.setScores[i] || {team:"", opp:""};
+        if(sc.team !== "" || sc.opp !== "") max = Math.max(max, i + 1);
+        for(const p of state.players){
+          if((p.playedBySet && p.playedBySet[i]) || anyStatNonZero(p.statsBySet[i] || cloneStats())){
+            max = Math.max(max, i + 1);
+          }
+        }
+      }
+      return Math.max(1, Math.min(MAX_SETS, max));
+    }
+
+    function playerLabel(player){
+      const num = String(player.number || "").trim();
+      const name = String(player.name || "").trim();
+      if(num && name) return `#${num} ${name}`;
+      if(num) return `#${num}`;
+      if(name) return name;
+      return "(bez nazwy)";
+    }
+
+    function findPlayer(playerId){
+      return state.players.find(p => p.id === playerId) || null;
+    }
+
+    function isFinishedSet(setNumber, team, opp){
+      if(team === "" || opp === "") return false;
+      const nTeam = Number(team), nOpp = Number(opp);
+      if(!Number.isFinite(nTeam) || !Number.isFinite(nOpp)) return false;
+      const target = setNumber === 5 ? 15 : 25;
+      return Math.max(nTeam, nOpp) >= target && Math.abs(nTeam - nOpp) >= 2;
+    }
+
+    function setsWon(){
+      let team = 0, opp = 0;
+      for(let i = 0; i < MAX_SETS; i++){
+        const sc = state.setScores[i] || {team:"", opp:""};
+        if(isFinishedSet(i + 1, sc.team, sc.opp)){
+          if(Number(sc.team) > Number(sc.opp)) team++;
+          else if(Number(sc.opp) > Number(sc.team)) opp++;
+        }
+      }
+      return {team, opp};
+    }
+
+    function getLeaders(){
+      const weights = state.settings.mvp.weights;
+      const maxSet = maxSetUsed();
+      let matchLeader = null;
+      let setLeader = null;
+
+      for(const player of state.players){
+        const total = statsTotalForPlayer(player, maxSet);
+        const playedSets = setsPlayed(player, maxSet);
+        if(anyStatNonZero(total) || playedSets > 0){
+          const divisor = Math.max(1, playedSets);
+          const matchRaw = mvpScoreFromStats(total, weights);
+          const matchScore = state.settings.mvp.normalizePerSet ? matchRaw / divisor : matchRaw;
+          const matchEntry = {player, score: matchScore};
+          if(!matchLeader || matchEntry.score > matchLeader.score) matchLeader = matchEntry;
+        }
+
+        const current = player.statsBySet[state.currentSet - 1] || cloneStats();
+        if(anyStatNonZero(current) || player.playedBySet[state.currentSet - 1]){
+          const setScore = mvpScoreFromStats(current, weights);
+          const setEntry = {player, score: setScore};
+          if(!setLeader || setEntry.score > setLeader.score) setLeader = setEntry;
+        }
+      }
+      return {matchLeader, setLeader};
+    }
+
+    function fmtInt(value){
+      const n = Number(value || 0);
+      return String(Number.isFinite(n) ? Math.round(n) : 0);
+    }
+
+    function fmtFloat(value, digits = 3){
+      let v = Number(value);
+      if(!Number.isFinite(v)) v = 0;
+      let text = v.toFixed(digits);
+      if(state.settings.decimalComma) text = text.replace(".", ",");
+      return text;
+    }
+
+    function actionMeta(actionKey){
+      return ACTION_BUTTONS.find(a => a.key === actionKey) || {text: actionKey, title: actionKey};
+    }
+
+    function actionToDeltas(actionKey, sign){
+      switch(actionKey){
+        case "A": return {A: 1 * sign};
+        case "K": return {A: 1 * sign, K: 1 * sign};
+        case "AE": return {A: 1 * sign, AE: 1 * sign};
+        case "AB": return {A: 1 * sign, AB: 1 * sign};
+
+        case "S": return {S: 1 * sign};
+        case "SA": return {S: 1 * sign, SA: 1 * sign};
+        case "SE": return {S: 1 * sign, SE: 1 * sign};
+
+        case "R": return {R: 1 * sign};
+        case "RP": return {R: 1 * sign, RP: 1 * sign};
+        case "RPos": return {R: 1 * sign, RPos: 1 * sign};
+        case "RNeu": return {R: 1 * sign, RNeu: 1 * sign};
+        case "RE": return {R: 1 * sign, RE: 1 * sign};
+
+        case "B": return {B: 1 * sign};
+        case "D": return {D: 1 * sign};
+        case "AS": return {AS: 1 * sign};
+        case "SETE": return {SETE: 1 * sign};
+        case "COV": return {COV: 1 * sign};
+        default: return {};
+      }
+    }
+
+    function applyDelta(player, setIndex, deltas){
+      const stats = player.statsBySet[setIndex];
+      const applied = {};
+      for(const [key, wanted] of Object.entries(deltas)){
+        const oldValue = stats[key] || 0;
+        let newValue = oldValue + wanted;
+        if(newValue < 0) newValue = 0;
+        const realDelta = newValue - oldValue;
+        if(realDelta !== 0){
+          stats[key] = newValue;
+          applied[key] = realDelta;
+        }
+      }
+      if(Object.values(applied).some(v => v > 0)){
+        player.playedBySet[setIndex] = true;
+      }
+      return applied;
+    }
+
+    function pushHistory(entry){
+      state.history.push(entry);
+      if(state.history.length > 200) state.history.shift();
+    }
+
+    function doActionForPlayer(playerId, actionKey){
+      const player = findPlayer(playerId);
+      if(!player) return;
+
+      const deltas = actionToDeltas(actionKey, state.ui.mode);
+      const applied = applyDelta(player, state.currentSet - 1, deltas);
+      if(!Object.keys(applied).length) return;
+
+      pushHistory({
+        ts: Date.now(),
+        playerId,
+        setIndex: state.currentSet - 1,
+        actionKey,
+        applied
+      });
+      saveState();
+      fullRender(true);
+    }
+
+    function undo(){
+      const last = state.history.pop();
+      if(!last) return;
+
+      const player = findPlayer(last.playerId);
+      if(!player){
+        saveState();
+        renderSummary();
+        return;
+      }
+
+      const inverse = {};
+      for(const [key, delta] of Object.entries(last.applied || {})){
+        inverse[key] = -delta;
+      }
+      applyDelta(player, last.setIndex, inverse);
+      saveState();
+      fullRender(true);
+    }
+
+    function describeHistoryEntry(entry){
+      if(!entry) return "Ostatnia akcja: —";
+      const player = findPlayer(entry.playerId);
+      const meta = actionMeta(entry.actionKey);
+      const playerText = player ? playerLabel(player) : "(zawodnik usunięty)";
+      const sign = Object.values(entry.applied || {}).some(v => v < 0) ? "-1" : "+1";
+      return `Ostatnia akcja: ${state.teamName} • ${playerText} • ${meta.text} • set ${entry.setIndex + 1} • tryb ${sign} • do cofnięcia: ${state.history.length}`;
+    }
+
+    const el = {
+      matchName: document.getElementById("matchName"),
+      teamName: document.getElementById("teamName"),
+      opponentName: document.getElementById("opponentName"),
+      scoreTeamLabel: document.getElementById("scoreTeamLabel"),
+      scoreOppLabel: document.getElementById("scoreOppLabel"),
+      setButtons: document.getElementById("setButtons"),
+      scoreTeam: document.getElementById("scoreTeam"),
+      scoreOpp: document.getElementById("scoreOpp"),
+
+      rosterTitle: document.getElementById("rosterTitle"),
+      roster: document.getElementById("roster"),
+      btnAddPlayer: document.getElementById("btnAddPlayer"),
+
+      modePill: document.getElementById("modePill"),
+      btnUndo: document.getElementById("btnUndo"),
+      btnToggleMode: document.getElementById("btnToggleMode"),
+      btnExportCSV: document.getElementById("btnExportCSV"),
+      btnExportJSON: document.getElementById("btnExportJSON"),
+      btnNewMatch: document.getElementById("btnNewMatch"),
+      summaryBoxes: document.getElementById("summaryBoxes"),
+      lastActionText: document.getElementById("lastActionText"),
+
+      videoSection: document.getElementById("videoSection"),
+      youtubeUrl: document.getElementById("youtubeUrl"),
+      btnLoadYoutube: document.getElementById("btnLoadYoutube"),
+      btnClearYoutube: document.getElementById("btnClearYoutube"),
+      youtubeStatus: document.getElementById("youtubeStatus"),
+      youtubePlayer: document.getElementById("youtubePlayer"),
+
+      tableTitle: document.getElementById("tableTitle"),
+      tableWrap: document.getElementById("tableWrap")
+    };
+
+    function captureScrolls(){
+      return {
+        roster: el.roster ? el.roster.scrollTop : 0,
+        table: el.tableWrap ? {top: el.tableWrap.scrollTop, left: el.tableWrap.scrollLeft} : {top:0, left:0}
+      };
+    }
+
+    function restoreScrolls(snapshot){
+      if(!snapshot) return;
+      if(el.roster) el.roster.scrollTop = snapshot.roster || 0;
+      if(el.tableWrap){
+        el.tableWrap.scrollTop = snapshot.table ? snapshot.table.top : 0;
+        el.tableWrap.scrollLeft = snapshot.table ? snapshot.table.left : 0;
+      }
+    }
+
+    function updateTitles(){
+      el.rosterTitle.textContent = `${state.teamName} – szybkie wpisywanie`;
+      el.tableTitle.textContent = `${state.teamName} – tabela statystyk (set ${state.currentSet})`;
+      el.scoreTeamLabel.textContent = state.teamName || "Moja drużyna";
+      el.scoreOppLabel.textContent = state.opponentName || "Przeciwnik";
+    }
+
+    function extractYouTubeVideoId(value){
+      const raw = String(value || "").trim();
+      if(!raw) return "";
+
+      const cleaned = raw.replace(/<[^>]*>/g, "").trim();
+      const directMatch = cleaned.match(/^[A-Za-z0-9_-]{11}$/);
+      if(directMatch) return directMatch[0];
+
+      try{
+        const url = new URL(cleaned);
+        const host = url.hostname.replace(/^www\./, "").toLowerCase();
+
+        if(host === "youtu.be") return url.pathname.split("/").filter(Boolean)[0] || "";
+        if(host.endsWith("youtube.com")){
+          if(url.searchParams.get("v")) return url.searchParams.get("v") || "";
+          const parts = url.pathname.split("/").filter(Boolean);
+          const markers = ["embed", "shorts", "live", "v"];
+          for(let i = 0; i < parts.length - 1; i++){
+            if(markers.includes(parts[i])) return parts[i + 1] || "";
+          }
+        }
+      }catch(err){}
+
+      const fallback = cleaned.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
+      return fallback ? fallback[1] : "";
+    }
+
+    function sanitizeYouTubeUrl(value){
+      const id = extractYouTubeVideoId(value);
+      return id ? `https://www.youtube.com/watch?v=${id}` : "";
+    }
+
+    function renderVideoSection(){
+      const savedUrl = state.settings.youtubeUrl || "";
+      const videoId = extractYouTubeVideoId(savedUrl);
+
+      el.videoSection.open = !state.ui.videoCollapsed;
+      el.youtubeUrl.value = savedUrl;
+
+      if(videoId){
+        const safeTitle = `${state.matchName || 'Film z meczu'} – YouTube`;
+        el.youtubePlayer.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}" title="${safeTitle.replace(/"/g, '&quot;')}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+        el.youtubeStatus.textContent = `Wczytany film: ${savedUrl}`;
+      }else{
+        el.youtubePlayer.innerHTML = `<div class="videoPlaceholder">Tutaj pojawi się osadzony film z meczu. Wklej link z YouTube i kliknij „Wczytaj film”.</div>`;
+        el.youtubeStatus.textContent = savedUrl ? "Nie udało się odczytać poprawnego linku YouTube." : "Brak wczytanego filmu.";
+      }
+    }
+
+    function renderControls(){
+      el.matchName.value = state.matchName || "";
+      el.teamName.value = state.teamName || "Moja drużyna";
+      el.opponentName.value = state.opponentName || "Przeciwnik";
+
+      const sc = state.setScores[state.currentSet - 1] || {team:"", opp:""};
+      el.scoreTeam.value = sc.team;
+      el.scoreOpp.value = sc.opp;
+
+      el.setButtons.innerHTML = "";
+      for(let i = 1; i <= MAX_SETS; i++){
+        const btn = document.createElement("button");
+        btn.className = "btn small" + (i === state.currentSet ? " active" : "");
+        btn.textContent = String(i);
+        btn.addEventListener("click", ()=>{
+          state.currentSet = i;
+          saveState();
+          fullRender(true);
+        });
+        el.setButtons.appendChild(btn);
+      }
+
+      el.modePill.textContent = `Tryb: ${state.ui.mode === 1 ? "+1" : "-1"}`;
+      el.btnToggleMode.textContent = state.ui.mode === 1 ? "Włącz tryb korekty (-1)" : "Wróć do trybu dodawania (+1)";
+      el.btnToggleMode.classList.toggle("active", state.ui.mode === -1);
+
+      updateTitles();
+    }
+
+    function createMiniStat(text){
+      const span = document.createElement("span");
+      span.className = "miniStat";
+      span.textContent = text;
+      return span;
+    }
+
+    function renderRoster(){
+      el.roster.innerHTML = "";
+      const weights = state.settings.mvp.weights;
+      const setIndex = state.currentSet - 1;
+
+      for(const player of state.players){
+        const line = document.createElement("div");
+        line.className = "playerLine";
+
+        const meta = document.createElement("div");
+        meta.className = "playerMeta";
+
+        const metaTop = document.createElement("div");
+        metaTop.className = "metaTop";
+
+        const inputNum = document.createElement("input");
+        inputNum.type = "text";
+        inputNum.className = "numInput";
+        inputNum.value = player.number || "";
+        inputNum.placeholder = "Nr";
+        inputNum.addEventListener("input", ()=>{
+          player.number = inputNum.value;
+          saveState();
+          renderSummary();
+          renderTable();
+        });
+
+        const inputName = document.createElement("input");
+        inputName.type = "text";
+        inputName.className = "nameInput";
+        inputName.value = player.name || "";
+        inputName.placeholder = "Imię i nazwisko";
+        inputName.addEventListener("input", ()=>{
+          player.name = inputName.value;
+          saveState();
+          renderSummary();
+          renderTable();
+        });
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "btn small warn";
+        removeBtn.textContent = "Usuń";
+        removeBtn.title = "Usuń zawodnika";
+        removeBtn.addEventListener("click", ()=>{
+          const ok = confirm(`Usunąć zawodnika ${playerLabel(player)} z ${state.teamName}?`);
+          if(!ok) return;
+          state.players = state.players.filter(p => p.id !== player.id);
+          saveState();
+          fullRender(true);
+        });
+
+        metaTop.appendChild(inputNum);
+        metaTop.appendChild(inputName);
+        metaTop.appendChild(removeBtn);
+
+        const playRow = document.createElement("div");
+        playRow.className = "playRow";
+
+        const playedWrap = document.createElement("label");
+        playedWrap.style.display = "inline-flex";
+        playedWrap.style.alignItems = "center";
+        playedWrap.style.gap = "6px";
+        const playedCheck = document.createElement("input");
+        playedCheck.type = "checkbox";
+        playedCheck.checked = !!player.playedBySet[setIndex];
+        playedCheck.addEventListener("change", ()=>{
+          player.playedBySet[setIndex] = !!playedCheck.checked;
+          saveState();
+          renderSummary();
+          renderTable();
+        });
+        playedWrap.appendChild(playedCheck);
+        playedWrap.appendChild(document.createTextNode("Grał w secie"));
+        playRow.appendChild(playedWrap);
+
+        const currentStats = player.statsBySet[setIndex] || cloneStats();
+        const currentMvp = mvpScoreFromStats(currentStats, weights);
+        playRow.appendChild(createMiniStat(`Pkt ${fmtInt(points(currentStats))}`));
+        playRow.appendChild(createMiniStat(`A ${fmtInt(currentStats.A)}`));
+        playRow.appendChild(createMiniStat(`R ${fmtInt(currentStats.R)}`));
+        playRow.appendChild(createMiniStat(`B ${fmtInt(currentStats.B)}`));
+        playRow.appendChild(createMiniStat(`D ${fmtInt(currentStats.D)}`));
+        playRow.appendChild(createMiniStat(`MVP ${fmtFloat(currentMvp, 2)}`));
+
+        meta.appendChild(metaTop);
+        meta.appendChild(playRow);
+
+        const actionWrap = document.createElement("div");
+        actionWrap.className = "actionWrap";
+
+        for(const action of ACTION_BUTTONS){
+          const btn = document.createElement("button");
+          btn.className = `btn small actionBtn ${action.cls}`;
+          btn.textContent = action.text;
+          btn.title = action.title;
+          btn.addEventListener("click", ()=>doActionForPlayer(player.id, action.key));
+          actionWrap.appendChild(btn);
+        }
+
+        line.appendChild(meta);
+        line.appendChild(actionWrap);
+        el.roster.appendChild(line);
+      }
+    }
+
+    function renderSummary(){
+      const weights = state.settings.mvp.weights;
+      const setTotals = teamTotalForSet(state.currentSet - 1);
+      const matchTotals = teamTotalForMatch(maxSetUsed());
+      const wins = setsWon();
+      const leaders = getLeaders();
+      const currentScore = state.setScores[state.currentSet - 1] || {team:"", opp:""};
+
+      const matchLeaderText = leaders.matchLeader
+        ? `${playerLabel(leaders.matchLeader.player)} (${fmtFloat(leaders.matchLeader.score, 2)})`
+        : "—";
+      const setLeaderText = leaders.setLeader
+        ? `${playerLabel(leaders.setLeader.player)} (${fmtFloat(leaders.setLeader.score, 2)})`
+        : "—";
+
+      const boxes = [
+        {label:"Aktualny set", value:`${state.currentSet}`},
+        {label:"Wynik seta", value:`${currentScore.team === "" ? "0" : currentScore.team} : ${currentScore.opp === "" ? "0" : currentScore.opp}`},
+        {label:"Sety", value:`${wins.team} : ${wins.opp}`},
+        {label:`${state.teamName} – pkt seta`, value:fmtInt(points(setTotals))},
+        {label:`${state.teamName} – pkt mecz`, value:fmtInt(points(matchTotals))},
+        {label:`${state.teamName} – Skuteczność ataku`, value:fmtFloat(attackSuccess(setTotals), 3)},
+        {label:`${state.teamName} – Efektywność ataku`, value:fmtFloat(attackEfficiency(setTotals), 3)},
+        {label:`${state.teamName} – Indeks przyjęcia`, value:fmtFloat(receptionIndex(setTotals), 3)},
+        {label:"MVP seta", value:setLeaderText},
+        {label:"MVP meczu", value:matchLeaderText},
+        {label:"Akcji do cofnięcia", value:fmtInt(state.history.length)}
+      ];
+
+      el.summaryBoxes.innerHTML = "";
+      for(const box of boxes){
+        const div = document.createElement("div");
+        div.className = "summaryBox";
+        div.innerHTML = `<div class="label"></div><div class="value"></div>`;
+        div.querySelector(".label").textContent = box.label;
+        div.querySelector(".value").textContent = box.value;
+        el.summaryBoxes.appendChild(div);
+      }
+
+      const last = state.history[state.history.length - 1];
+      el.lastActionText.textContent = describeHistoryEntry(last);
+    }
+
+    function promptStatEdit(player, statKey){
+      const currentValue = player.statsBySet[state.currentSet - 1][statKey] || 0;
+      const value = prompt(`Ustaw wartość ${statKey} dla ${playerLabel(player)} (set ${state.currentSet})`, String(currentValue));
+      if(value === null) return;
+      const parsed = Number(String(value).replace(",", "."));
+      const nextValue = Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : 0;
+      player.statsBySet[state.currentSet - 1][statKey] = nextValue;
+      if(nextValue > 0) player.playedBySet[state.currentSet - 1] = true;
+      saveState();
+      fullRender(true);
+    }
+
+    function renderTable(){
+      el.tableWrap.innerHTML = "";
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+
+      const tr1 = document.createElement("tr");
+      const headers1 = [
+        {text:"Nr", cls:"stickyLeft"},
+        {text:"Zawodnik", cls:"stickyLeft2 left"},
+        {text:"Grał"},
+        {text:"Pkt"},
+        {text:"Atak", colSpan:4},
+        {text:"Zagrywka", colSpan:3},
+        {text:"Przyjęcie", colSpan:5},
+        {text:"Pozostałe", colSpan:5},
+        {text:"SkutA"},
+        {text:"EfkA"},
+        {text:"IndP"},
+        {text:"MVP"}
+      ];
+      for(const item of headers1){
+        const th = document.createElement("th");
+        th.textContent = item.text;
+        if(item.cls) th.className = item.cls;
+        if(item.colSpan) th.colSpan = item.colSpan;
+        tr1.appendChild(th);
+      }
+      thead.appendChild(tr1);
+
+      const tr2 = document.createElement("tr");
+      const headers2 = [
+        {text:"", cls:"stickyLeft"},
+        {text:"", cls:"stickyLeft2"},
+        {text:""},
+        {text:""},
+        {text:"A"},{text:"K"},{text:"AE"},{text:"AB"},
+        {text:"S"},{text:"SA"},{text:"SE"},
+        {text:"R"},{text:"RP"},{text:"R+"},{text:"R0"},{text:"RE"},
+        {text:"B"},{text:"D"},{text:"AS"},{text:"SET"},{text:"COV"},
+        {text:""},{text:""},{text:""},{text:""}
+      ];
+      for(const item of headers2){
+        const th = document.createElement("th");
+        th.textContent = item.text;
+        if(item.cls) th.className = item.cls;
+        tr2.appendChild(th);
+      }
+      thead.appendChild(tr2);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      const setIndex = state.currentSet - 1;
+      const weights = state.settings.mvp.weights;
+      let teamTotal = cloneStats();
+
+      for(const player of state.players){
+        const stats = player.statsBySet[setIndex] || cloneStats();
+        teamTotal = sumStatsObj(teamTotal, stats);
+
+        const tr = document.createElement("tr");
+        const playedText = (player.playedBySet[setIndex] || anyStatNonZero(stats)) ? "Tak" : "";
+
+        const tdNr = document.createElement("td");
+        tdNr.className = "stickyLeft";
+        tdNr.textContent = player.number || "";
+        tr.appendChild(tdNr);
+
+        const tdName = document.createElement("td");
+        tdName.className = "stickyLeft2 left";
+        tdName.textContent = player.name || "";
+        tr.appendChild(tdName);
+
+        const tdPlayed = document.createElement("td");
+        tdPlayed.textContent = playedText;
+        tr.appendChild(tdPlayed);
+
+        const tdPts = document.createElement("td");
+        tdPts.textContent = fmtInt(points(stats));
+        tr.appendChild(tdPts);
+
+        function appendStatCell(statKey){
+          const td = document.createElement("td");
+          const span = document.createElement("span");
+          span.className = "cellEdit";
+          span.textContent = fmtInt(stats[statKey] || 0);
+          span.title = "Dwuklik: edycja ręczna";
+          span.addEventListener("dblclick", ()=>promptStatEdit(player, statKey));
+          td.appendChild(span);
+          tr.appendChild(td);
+        }
+
+        for(const key of ["A","K","AE","AB","S","SA","SE","R","RP","RPos","RNeu","RE","B","D","AS","SETE","COV"]){
+          appendStatCell(key);
+        }
+
+        const tdAS = document.createElement("td");
+        tdAS.textContent = fmtFloat(attackSuccess(stats), 3);
+        tr.appendChild(tdAS);
+
+        const tdAE = document.createElement("td");
+        tdAE.textContent = fmtFloat(attackEfficiency(stats), 3);
+        tr.appendChild(tdAE);
+
+        const tdRI = document.createElement("td");
+        tdRI.textContent = fmtFloat(receptionIndex(stats), 3);
+        tr.appendChild(tdRI);
+
+        const tdMVP = document.createElement("td");
+        tdMVP.textContent = fmtFloat(mvpScoreFromStats(stats, weights), 3);
+        tr.appendChild(tdMVP);
+
+        tbody.appendChild(tr);
+      }
+
+      table.appendChild(tbody);
+
+      const tfoot = document.createElement("tfoot");
+      const trT = document.createElement("tr");
+      trT.style.fontWeight = "800";
+      trT.style.background = "rgba(255,255,255,.03)";
+
+      function makeTd(text, cls=""){
+        const td = document.createElement("td");
+        td.textContent = text;
+        if(cls) td.className = cls;
+        return td;
+      }
+
+      trT.appendChild(makeTd("—", "stickyLeft"));
+      trT.appendChild(makeTd("SUMA DRUŻYNY", "stickyLeft2 left"));
+      trT.appendChild(makeTd(""));
+      trT.appendChild(makeTd(fmtInt(points(teamTotal))));
+      for(const key of ["A","K","AE","AB","S","SA","SE","R","RP","RPos","RNeu","RE","B","D","AS","SETE","COV"]){
+        trT.appendChild(makeTd(fmtInt(teamTotal[key] || 0)));
+      }
+      trT.appendChild(makeTd(fmtFloat(attackSuccess(teamTotal), 3)));
+      trT.appendChild(makeTd(fmtFloat(attackEfficiency(teamTotal), 3)));
+      trT.appendChild(makeTd(fmtFloat(receptionIndex(teamTotal), 3)));
+      trT.appendChild(makeTd(fmtFloat(mvpScoreFromStats(teamTotal, weights), 3)));
+
+      tfoot.appendChild(trT);
+      table.appendChild(tfoot);
+      el.tableWrap.appendChild(table);
+    }
+
+    function fullRender(preserveScroll = false){
+      const snapshot = preserveScroll ? captureScrolls() : null;
+      renderControls();
+      renderVideoSection();
+      renderRoster();
+      renderSummary();
+      renderTable();
+      if(snapshot) restoreScrolls(snapshot);
+    }
+
+    function csvEscape(value, delimiter){
+      const s = String(value ?? "");
+      const needsQuotes = s.includes('"') || s.includes("\n") || s.includes("\r") || s.includes(delimiter);
+      if(!needsQuotes) return s;
+      return '"' + s.replaceAll('"', '""') + '"';
+    }
+
+    function downloadText(filename, content){
+      const blob = new Blob([content], {type:"text/plain;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportJSON(){
+      const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g, "-");
+      downloadText(`siatkowka_backup_${ts}.json`, JSON.stringify(state, null, 2));
+    }
+
+    function exportCSV(){
+      const delimiter = state.settings.delimiter || ";";
+      const maxSet = maxSetUsed();
+      const dateStr = new Date().toISOString().slice(0,10);
+      const weights = state.settings.mvp.weights;
+      const header = [
+        "Data","Mecz","Drużyna","Przeciwnik",
+        "Set","Wynik_drużyny","Wynik_rywala",
+        "Nr","Zawodnik","Grał",
+        "A","K","AE","AB",
+        "S","SA","SE",
+        "R","RP","R+","R0","RE",
+        "B","D","AS","Błędy_rozegr.","COV",
+        "Punkty","Skut_ataku","Efek_ataku","Ind_przyjęcia",
+        "MVP"
+      ];
+      const rows = [];
+
+      function rowToLine(row){
+        return header.map(h => csvEscape(row[h] ?? "", delimiter)).join(delimiter);
+      }
+
+      function setScoreFor(setIndex){
+        const sc = state.setScores[setIndex] || {team:"", opp:""};
+        return {forTeam: sc.team, against: sc.opp};
+      }
+
+      for(const player of state.players){
+        for(let setNo = 1; setNo <= maxSet; setNo++){
+          const si = setNo - 1;
+          const stats = player.statsBySet[si] || cloneStats();
+          const played = (player.playedBySet[si] || anyStatNonZero(stats)) ? 1 : 0;
+          const score = setScoreFor(si);
+
+          rows.push(rowToLine({
+            "Data": dateStr,
+            "Mecz": state.matchName || "",
+            "Drużyna": state.teamName,
+            "Przeciwnik": state.opponentName,
+            "Set": setNo,
+            "Wynik_drużyny": score.forTeam,
+            "Wynik_rywala": score.against,
+            "Nr": player.number || "",
+            "Zawodnik": player.name || "",
+            "Grał": played,
+            "A": stats.A, "K": stats.K, "AE": stats.AE, "AB": stats.AB,
+            "S": stats.S, "SA": stats.SA, "SE": stats.SE,
+            "R": stats.R, "RP": stats.RP, "R+": stats.RPos, "R0": stats.RNeu, "RE": stats.RE,
+            "B": stats.B, "D": stats.D, "AS": stats.AS, "Błędy_rozegr.": stats.SETE, "COV": stats.COV,
+            "Punkty": points(stats),
+            "Skut_ataku": fmtFloat(attackSuccess(stats), 3),
+            "Efek_ataku": fmtFloat(attackEfficiency(stats), 3),
+            "Ind_przyjęcia": fmtFloat(receptionIndex(stats), 3),
+            "MVP": fmtFloat(mvpScoreFromStats(stats, weights), 3)
+          }));
+        }
+
+        const total = statsTotalForPlayer(player, maxSet);
+        const playedSets = setsPlayed(player, maxSet);
+        const mvpRaw = mvpScoreFromStats(total, weights);
+        const mvpTotal = state.settings.mvp.normalizePerSet ? safeDiv(mvpRaw, Math.max(1, playedSets)) : mvpRaw;
+
+        rows.push(rowToLine({
+          "Data": dateStr,
+          "Mecz": state.matchName || "",
+          "Drużyna": state.teamName,
+          "Przeciwnik": state.opponentName,
+          "Set": "TOTAL",
+          "Wynik_drużyny": "",
+          "Wynik_rywala": "",
+          "Nr": player.number || "",
+          "Zawodnik": player.name || "",
+          "Grał": playedSets,
+          "A": total.A, "K": total.K, "AE": total.AE, "AB": total.AB,
+          "S": total.S, "SA": total.SA, "SE": total.SE,
+          "R": total.R, "RP": total.RP, "R+": total.RPos, "R0": total.RNeu, "RE": total.RE,
+          "B": total.B, "D": total.D, "AS": total.AS, "Błędy_rozegr.": total.SETE, "COV": total.COV,
+          "Punkty": points(total),
+          "Skut_ataku": fmtFloat(attackSuccess(total), 3),
+          "Efek_ataku": fmtFloat(attackEfficiency(total), 3),
+          "Ind_przyjęcia": fmtFloat(receptionIndex(total), 3),
+          "MVP": fmtFloat(mvpTotal, 3)
+        }));
+      }
+
+      for(let setNo = 1; setNo <= maxSet; setNo++){
+        const si = setNo - 1;
+        const total = teamTotalForSet(si);
+        const score = setScoreFor(si);
+
+        rows.push(rowToLine({
+          "Data": dateStr,
+          "Mecz": state.matchName || "",
+          "Drużyna": state.teamName,
+          "Przeciwnik": state.opponentName,
+          "Set": setNo,
+          "Wynik_drużyny": score.forTeam,
+          "Wynik_rywala": score.against,
+          "Nr": "",
+          "Zawodnik": "SUMA DRUŻYNY",
+          "Grał": "",
+          "A": total.A, "K": total.K, "AE": total.AE, "AB": total.AB,
+          "S": total.S, "SA": total.SA, "SE": total.SE,
+          "R": total.R, "RP": total.RP, "R+": total.RPos, "R0": total.RNeu, "RE": total.RE,
+          "B": total.B, "D": total.D, "AS": total.AS, "Błędy_rozegr.": total.SETE, "COV": total.COV,
+          "Punkty": points(total),
+          "Skut_ataku": fmtFloat(attackSuccess(total), 3),
+          "Efek_ataku": fmtFloat(attackEfficiency(total), 3),
+          "Ind_przyjęcia": fmtFloat(receptionIndex(total), 3),
+          "MVP": fmtFloat(mvpScoreFromStats(total, weights), 3)
+        }));
+      }
+
+      const matchTotal = teamTotalForMatch(maxSet);
+      rows.push(rowToLine({
+        "Data": dateStr,
+        "Mecz": state.matchName || "",
+        "Drużyna": state.teamName,
+        "Przeciwnik": state.opponentName,
+        "Set": "TOTAL",
+        "Wynik_drużyny": "",
+        "Wynik_rywala": "",
+        "Nr": "",
+        "Zawodnik": "SUMA DRUŻYNY",
+        "Grał": "",
+        "A": matchTotal.A, "K": matchTotal.K, "AE": matchTotal.AE, "AB": matchTotal.AB,
+        "S": matchTotal.S, "SA": matchTotal.SA, "SE": matchTotal.SE,
+        "R": matchTotal.R, "RP": matchTotal.RP, "R+": matchTotal.RPos, "R0": matchTotal.RNeu, "RE": matchTotal.RE,
+        "B": matchTotal.B, "D": matchTotal.D, "AS": matchTotal.AS, "Błędy_rozegr.": matchTotal.SETE, "COV": matchTotal.COV,
+        "Punkty": points(matchTotal),
+        "Skut_ataku": fmtFloat(attackSuccess(matchTotal), 3),
+        "Efek_ataku": fmtFloat(attackEfficiency(matchTotal), 3),
+        "Ind_przyjęcia": fmtFloat(receptionIndex(matchTotal), 3),
+        "MVP": fmtFloat(mvpScoreFromStats(matchTotal, weights), 3)
+      }));
+
+      const bom = "\uFEFF";
+      const csv = bom + header.join(delimiter) + "\r\n" + rows.join("\r\n");
+      const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g, "-");
+      const matchSafe = (state.matchName || "mecz").slice(0, 40).replace(/[^\w\- ]/g, "").trim().replace(/\s+/g, "_");
+      downloadText(`siatkowka_${matchSafe}_${ts}.csv`, csv);
+    }
+
+    let state = loadState();
+
+    el.matchName.addEventListener("input", ()=>{
+      state.matchName = el.matchName.value;
+      saveState();
+    });
+
+    el.teamName.addEventListener("input", ()=>{
+      state.teamName = el.teamName.value || "Moja drużyna";
+      saveState();
+      updateTitles();
+      renderSummary();
+    });
+
+    el.opponentName.addEventListener("input", ()=>{
+      state.opponentName = el.opponentName.value || "Przeciwnik";
+      saveState();
+      updateTitles();
+      renderSummary();
+    });
+
+    el.scoreTeam.addEventListener("input", ()=>{
+      state.setScores[state.currentSet - 1].team = sanitizeScore(el.scoreTeam.value);
+      saveState();
+      renderSummary();
+    });
+
+    el.scoreOpp.addEventListener("input", ()=>{
+      state.setScores[state.currentSet - 1].opp = sanitizeScore(el.scoreOpp.value);
+      saveState();
+      renderSummary();
+    });
+
+    el.btnAddPlayer.addEventListener("click", ()=>{
+      state.players.push(createPlayer("", ""));
+      saveState();
+      fullRender(true);
+    });
+
+    el.videoSection.addEventListener("toggle", ()=>{
+      state.ui.videoCollapsed = !el.videoSection.open;
+      saveState();
+    });
+
+    el.btnLoadYoutube.addEventListener("click", ()=>{
+      const normalized = sanitizeYouTubeUrl(el.youtubeUrl.value);
+      state.settings.youtubeUrl = normalized;
+      saveState();
+      renderVideoSection();
+      if(!normalized && el.youtubeUrl.value.trim()){
+        el.youtubeStatus.textContent = "Nie udało się odczytać poprawnego linku YouTube.";
+      }
+    });
+
+    el.btnClearYoutube.addEventListener("click", ()=>{
+      state.settings.youtubeUrl = "";
+      el.youtubeUrl.value = "";
+      saveState();
+      renderVideoSection();
+    });
+
+    el.btnUndo.addEventListener("click", undo);
+
+    el.btnToggleMode.addEventListener("click", ()=>{
+      state.ui.mode = state.ui.mode === 1 ? -1 : 1;
+      saveState();
+      renderControls();
+      renderSummary();
+    });
+
+    el.btnExportCSV.addEventListener("click", exportCSV);
+    el.btnExportJSON.addEventListener("click", exportJSON);
+
+    el.btnNewMatch.addEventListener("click", ()=>{
+      const ok = confirm("Na pewno rozpocząć nowy mecz? Aktualne dane zostaną zastąpione.");
+      if(!ok) return;
+      state = createNewMatch();
+      saveState();
+      fullRender(false);
+    });
+
+    fullRender(false);
+  </script>
+</body>
+</html>
