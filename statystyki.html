@@ -556,6 +556,7 @@
       {key:"RNeu", text:"R0", cls:"warn", title:"Przyjęcie neutralne (R+R0)"},
       {key:"RE", text:"RE", cls:"bad", title:"Błąd przyjęcia (R+RE)"},
       {key:"B", text:"B", cls:"good", title:"Blok punktowy (+B)"},
+      {key:"WB", text:"WB", cls:"soft", title:"Wyblok (+B)"},
       {key:"D", text:"D", cls:"soft", title:"Obrona (+D)"},
       {key:"AS", text:"AS", cls:"soft", title:"Asysta (+AS)"},
       {key:"SETE", text:"SET", cls:"bad", title:"Błąd rozegrania (+SET)"},
@@ -1305,7 +1306,7 @@
         {text:"A"},{text:"K"},{text:"AE"},{text:"AB"},
         {text:"S"},{text:"SA"},{text:"SE"},
         {text:"R"},{text:"RP"},{text:"R+"},{text:"R0"},{text:"RE"},
-        {text:"B"},{text:"D"},{text:"AS"},{text:"SET"},{text:"COV"},
+        {text:"B"},{text:"WB"},{text:"D"},{text:"AS"},{text:"SET"},{text:"COV"},
         {text:""},{text:""},{text:""},{text:""}
       ];
       for(const item of headers2){
@@ -1458,7 +1459,7 @@
         "A","K","AE","AB",
         "S","SA","SE",
         "R","RP","R+","R0","RE",
-        "B","D","AS","Błędy_rozegr.","COV",
+        "B","WB","D","AS","Błędy_rozegr.","COV",
         "Punkty","Skut_ataku","Efek_ataku","Ind_przyjęcia",
         "MVP"
       ];
@@ -1494,7 +1495,7 @@
             "A": stats.A, "K": stats.K, "AE": stats.AE, "AB": stats.AB,
             "S": stats.S, "SA": stats.SA, "SE": stats.SE,
             "R": stats.R, "RP": stats.RP, "R+": stats.RPos, "R0": stats.RNeu, "RE": stats.RE,
-            "B": stats.B, "D": stats.D, "AS": stats.AS, "Błędy_rozegr.": stats.SETE, "COV": stats.COV,
+            "B": stats.B, "WB": stats.WB, "D": stats.D, "AS": stats.AS, "Błędy_rozegr.": stats.SETE, "COV": stats.COV,
             "Punkty": points(stats),
             "Skut_ataku": fmtFloat(attackSuccess(stats), 3),
             "Efek_ataku": fmtFloat(attackEfficiency(stats), 3),
@@ -1522,7 +1523,7 @@
           "A": total.A, "K": total.K, "AE": total.AE, "AB": total.AB,
           "S": total.S, "SA": total.SA, "SE": total.SE,
           "R": total.R, "RP": total.RP, "R+": total.RPos, "R0": total.RNeu, "RE": total.RE,
-          "B": total.B, "D": total.D, "AS": total.AS, "Błędy_rozegr.": total.SETE, "COV": total.COV,
+          "B": total.B, "WB": total.WB, "D": total.D, "AS": total.AS, "Błędy_rozegr.": total.SETE, "COV": total.COV,
           "Punkty": points(total),
           "Skut_ataku": fmtFloat(attackSuccess(total), 3),
           "Efek_ataku": fmtFloat(attackEfficiency(total), 3),
@@ -1550,7 +1551,7 @@
           "A": total.A, "K": total.K, "AE": total.AE, "AB": total.AB,
           "S": total.S, "SA": total.SA, "SE": total.SE,
           "R": total.R, "RP": total.RP, "R+": total.RPos, "R0": total.RNeu, "RE": total.RE,
-          "B": total.B, "D": total.D, "AS": total.AS, "Błędy_rozegr.": total.SETE, "COV": total.COV,
+          "B": total.B, "WB": total.WB, "D": total.D, "AS": total.AS, "Błędy_rozegr.": total.SETE, "COV": total.COV,
           "Punkty": points(total),
           "Skut_ataku": fmtFloat(attackSuccess(total), 3),
           "Efek_ataku": fmtFloat(attackEfficiency(total), 3),
@@ -1574,7 +1575,7 @@
         "A": matchTotal.A, "K": matchTotal.K, "AE": matchTotal.AE, "AB": matchTotal.AB,
         "S": matchTotal.S, "SA": matchTotal.SA, "SE": matchTotal.SE,
         "R": matchTotal.R, "RP": matchTotal.RP, "R+": matchTotal.RPos, "R0": matchTotal.RNeu, "RE": matchTotal.RE,
-        "B": matchTotal.B, "D": matchTotal.D, "AS": matchTotal.AS, "Błędy_rozegr.": matchTotal.SETE, "COV": matchTotal.COV,
+        "B": matchTotal.B, "WB": matchTotal.WB, "D": matchTotal.D, "AS": matchTotal.AS, "Błędy_rozegr.": matchTotal.SETE, "COV": matchTotal.COV,
         "Punkty": points(matchTotal),
         "Skut_ataku": fmtFloat(attackSuccess(matchTotal), 3),
         "Efek_ataku": fmtFloat(attackEfficiency(matchTotal), 3),
