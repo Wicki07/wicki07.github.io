@@ -529,6 +529,7 @@
       K: 1.0,
       SA: 1.0,
       B: 1.0,
+      WB: 0.5,
       AE: -1.0,
       AB: -1.0,
       SE: -1.0,
@@ -884,6 +885,7 @@
         case "RE": return {R: 1 * sign, RE: 1 * sign};
 
         case "B": return {B: 1 * sign};
+        case "WB": return {B: 1 * sign};
         case "D": return {D: 1 * sign};
         case "AS": return {AS: 1 * sign};
         case "SETE": return {SETE: 1 * sign};
@@ -1359,7 +1361,7 @@
           tr.appendChild(td);
         }
 
-        for(const key of ["A","K","AE","AB","S","SA","SE","R","RP","RPos","RNeu","RE","B","D","AS","SETE","COV"]){
+        for(const key of ["A","K","AE","AB","S","SA","SE","R","RP","RPos","RNeu","RE","B","WB","D","AS","SETE","COV"]){
           appendStatCell(key);
         }
 
@@ -1400,7 +1402,7 @@
       trT.appendChild(makeTd("SUMA DRUŻYNY", "stickyLeft2 left"));
       trT.appendChild(makeTd(""));
       trT.appendChild(makeTd(fmtInt(points(teamTotal))));
-      for(const key of ["A","K","AE","AB","S","SA","SE","R","RP","RPos","RNeu","RE","B","D","AS","SETE","COV"]){
+      for(const key of ["A","K","AE","AB","S","SA","SE","R","RP","RPos","RNeu","RE","B","WB","D","AS","SETE","COV"]){
         trT.appendChild(makeTd(fmtInt(teamTotal[key] || 0)));
       }
       trT.appendChild(makeTd(fmtFloat(attackSuccess(teamTotal), 3)));
